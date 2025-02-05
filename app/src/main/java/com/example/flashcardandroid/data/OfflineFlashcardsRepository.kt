@@ -11,6 +11,8 @@ class OfflineFlashcardsRepository(private val flashcardDao: FlashcardDao): Flash
 
     //override fun getByTag(include: List<String>, exclude: List<String>): Flow<List<Flashcard>> = flashcardDao.getByTag(include, exclude)
 
+    override suspend fun getByIds(cards: List<Int>) = flashcardDao.getByIds(cards)
+
     override suspend fun insert(card: Flashcard) = flashcardDao.insert(card)
 
     override suspend fun delete(card: Flashcard) = flashcardDao.delete(card)

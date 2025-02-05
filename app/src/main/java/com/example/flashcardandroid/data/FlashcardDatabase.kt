@@ -1,13 +1,10 @@
 package com.example.flashcardandroid.data
 
 import android.content.Context
-import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Delete
-import androidx.room.Entity
 import androidx.room.Insert
-import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -30,6 +27,9 @@ interface FlashcardDao {
 //            "WHERE tag IN (:include) " +
 //            "GROUP BY flashcard.uid")
 //    fun getByTag(include: List<String>, exclude: List<String>): Flow<List<Flashcard>>
+
+    @Query("SELECT * FROM flashcards WHERE uid IN (:cards)")
+    fun getByIds(cards: List<Int>): Flow<List<Flashcard>>
 
     @Insert
     suspend fun insert(card: Flashcard)

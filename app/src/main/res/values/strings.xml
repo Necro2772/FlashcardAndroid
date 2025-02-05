@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">FlashcardAndroid</string>
+    <string name="app_name">Flashcard Android</string>
+    <string name="flashcard_input_title">Flashcard List</string>
+    <string name="flashcard_title">Flashcards</string>
 </resources>

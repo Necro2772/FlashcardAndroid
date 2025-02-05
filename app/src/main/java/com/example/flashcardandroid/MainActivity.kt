@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
+import androidx.navigation.compose.rememberNavController
+import com.example.flashcardandroid.navigation.FlashcardNavHost
 import com.example.flashcardandroid.ui.theme.FlashcardAndroidTheme
 
 class MainActivity : ComponentActivity() {
@@ -16,8 +18,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
+            val navController = rememberNavController()
             FlashcardAndroidTheme {
-                FlashcardInputScreen()
+                FlashcardNavHost(navController)
             }
         }
     }
