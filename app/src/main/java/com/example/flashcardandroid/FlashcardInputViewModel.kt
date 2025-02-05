@@ -20,8 +20,11 @@ class FlashcardInputViewModel(private val flashcardsRepository: FlashcardsReposi
     var flashcardList by mutableStateOf(listOf(FlashcardDetails()))
         private set
 
+    var isCardValid by mutableStateOf(false)
+
     fun updateUiState(flashcardDetails: FlashcardDetails) {
         flashcardUiState = FlashcardUiState(flashcardDetails)
+        isCardValid = flashcardDetails.frontText.isNotEmpty() && flashcardDetails.backText.isNotEmpty()
     }
 
     fun getShuffledCards(): List<Int> {
@@ -34,19 +37,19 @@ class FlashcardInputViewModel(private val flashcardsRepository: FlashcardsReposi
         val tmp = flashcardList.toMutableList()
         tmp[index] = flashcardUiState.flashcardDetails
         flashcardList = tmp
-        flashcardUiState = FlashcardUiState()
+        updateUiState(FlashcardDetails())
     }
 
     suspend fun deleteCard() {
         flashcardsRepository.delete(flashcardUiState.flashcardDetails.toFlashcard())
         flashcardList = flashcardList.minus(flashcardUiState.flashcardDetails)
-        flashcardUiState = FlashcardUiState()
+        updateUiState(FlashcardDetails())
     }
 
     suspend fun saveCard() {
         flashcardsRepository.insert(flashcardUiState.flashcardDetails.toFlashcard())
         flashcardList = flashcardList.plus(flashcardsRepository.getLast().first().toFlashcardDetails())
-        flashcardUiState = FlashcardUiState()
+        updateUiState(FlashcardDetails())
     }
 
     suspend fun loadAllCards() {
@@ -64,27 +67,7 @@ data class FlashcardDetails(
     val frontText: String = "",
     val backText: String = "",
     val tags: List<String> = listOf()
-): Parcelable {
-
-    override fun writeToParcel(parcel: Parcel, flags: Int) {
-        parcel.writeInt(uid)
-    }
-
-    override fun describeContents(): Int {
-        return 0
-    }
-
-    companion object CREATOR : Parcelable.Creator<FlashcardDetails> {
-        override fun createFromParcel(parcel: Parcel): FlashcardDetails {
-            return FlashcardDetails(parcel.readInt())
-        }
-
-        override fun newArray(size: Int): Array<FlashcardDetails?> {
-            return arrayOfNulls(size)
-        }
-    }
-
-}
+)
 
 fun FlashcardDetails.toFlashcard(): Flashcard = Flashcard(
     uid = uid,

@@ -1,6 +1,8 @@
 package com.example.flashcardandroid
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
@@ -16,7 +18,14 @@ class FlashcardViewModel(savedStateHandle: SavedStateHandle, private val flashca
     var flashcardList by mutableStateOf(listOf(FlashcardDetails()))
 
     suspend fun loadCards() {
-        flashcardList = flashcardsRepository.getByIds(args).first().map {card -> card.toFlashcardDetails()}
+        flashcardList = flashcardsRepository.getByIds(args).first().map {card -> card.toFlashcardDetails()}.shuffled()
+    }
+
+    fun flip(index: Int) {
+        val currentCard = flashcardList[index]
+        val tmpCards = flashcardList.toMutableList()
+        tmpCards[index] = FlashcardDetails(currentCard.uid, currentCard.backText, currentCard.frontText, currentCard.tags)
+        flashcardList = tmpCards
     }
 
 }

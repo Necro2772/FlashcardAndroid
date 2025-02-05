@@ -20,6 +20,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -45,6 +46,7 @@ fun FlashcardInputScreen(
     viewModel: FlashcardInputViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val coroutineScope = rememberCoroutineScope()
+    LaunchedEffect(true) { viewModel.loadAllCards() }
     Scaffold {
         innerPadding ->
         FlashcardInputBody(modifier = modifier
@@ -60,14 +62,10 @@ fun FlashcardInputScreen(
             viewModel.flashcardUiState.flashcardDetails,
             viewModel::updateUiState,
             flashcards = viewModel.flashcardList.reversed(),
+            isCardValid = viewModel.isCardValid,
             onSave = {
                 coroutineScope.launch {
                     viewModel.saveCard()
-                }
-            },
-            onLoad = {
-                coroutineScope.launch {
-                    viewModel.loadAllCards()
                 }
             },
             onEdit = {
@@ -91,35 +89,37 @@ private fun FlashcardInputBody(
     flashcardDetails: FlashcardDetails = FlashcardDetails(),
     onValueChange: (FlashcardDetails) -> Unit = {},
     flashcards: List<FlashcardDetails> = mutableStateListOf(),
+    isCardValid: Boolean = false,
     onSave: () -> Unit = {},
-    onLoad: () -> Unit = {},
     onRemove: () -> Unit = {},
     onEdit: () -> Unit = {},
     navigateToFlashcardView: () -> Unit = {}
 ) {
     Column (modifier = modifier) {
         InputFlashcard(flashcardDetails, onValueChange)
+        FilledTonalButton(
+            onClick = { navigateToFlashcardView() },
+            Modifier.fillMaxWidth()
+        ) {
+            Text("Shuffle Flashcards!")
+        }
 
         if (flashcardDetails.uid == 0) {
             Row {
                 FilledTonalButton(
                     onClick = { onSave() },
-                    Modifier.weight(0.5F)
+                    Modifier.weight(0.5F),
+                    enabled = isCardValid
                 ) {
                     Text("Add Card")
-                }
-                FilledTonalButton(
-                    onClick = { onLoad() },
-                    Modifier.weight(0.5F)
-                ) {
-                    Text("Reload")
                 }
             }
         } else {
             Row {
                 FilledTonalButton(
                     onClick = { onEdit() },
-                    Modifier.weight(0.4F)
+                    Modifier.weight(0.4F),
+                    enabled = isCardValid
                 ) {
                     Text("Confirm Changes")
                 }
@@ -127,7 +127,7 @@ private fun FlashcardInputBody(
                     onClick = { onRemove() },
                     Modifier.weight(0.3F)
                 ) {
-                    Text("Remove Card")
+                    Text("Delete")
                 }
                 FilledTonalButton(
                     onClick = { onValueChange(FlashcardDetails()) },
@@ -137,7 +137,6 @@ private fun FlashcardInputBody(
                 }
             }
         }
-        FilledTonalButton( onClick = { navigateToFlashcardView() }, Modifier.fillMaxWidth()) { Text("Shuffle Flashcards!") }
         FlashcardList(flashcards, onClick = { current -> onValueChange(current)})
     }
 }
@@ -169,7 +168,6 @@ fun FlashcardList(flashcards: List<FlashcardDetails>, onClick: (FlashcardDetails
                 Column (modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
                     Row (modifier = Modifier.clickable { onClick(flashcard) },
                         verticalAlignment = Alignment.CenterVertically) {
-                        //Text(flashcard.uid.toString(), modifier = Modifier.weight(0.1F))
                         Text(flashcard.frontText, modifier = Modifier.weight(0.5F), textAlign = TextAlign.Center)
                         Text(flashcard.backText, modifier = Modifier.weight(0.5F), textAlign = TextAlign.Center)
                     }
