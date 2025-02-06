@@ -21,11 +21,23 @@ class FlashcardViewModel(savedStateHandle: SavedStateHandle, private val flashca
         flashcardList = flashcardsRepository.getByIds(args).first().map {card -> card.toFlashcardDetails()}.shuffled()
     }
 
+    fun removeCardFromDeck(flashcardDetails: FlashcardDetails) {
+        flashcardList = flashcardList.minus(flashcardDetails)
+    }
+
+    fun reshuffle() {
+        flashcardList = flashcardList.shuffled()
+    }
+
     fun flip(index: Int) {
         val currentCard = flashcardList[index]
         val tmpCards = flashcardList.toMutableList()
         tmpCards[index] = FlashcardDetails(currentCard.uid, currentCard.backText, currentCard.frontText, currentCard.tags)
         flashcardList = tmpCards
+    }
+
+    fun flipAll() {
+        flashcardList = flashcardList.map { card -> FlashcardDetails(uid = card.uid, frontText = card.backText, backText = card.frontText, tags = card.tags) }
     }
 
 }

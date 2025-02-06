@@ -1,6 +1,5 @@
 package com.example.flashcardandroid
 
-import android.os.Bundle
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,23 +13,29 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconToggleButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.flashcardandroid.navigation.Flashcards
 import com.example.flashcardandroid.navigation.NavigationDestination
 import kotlinx.coroutines.launch
 
@@ -47,9 +52,9 @@ fun FlashcardInputScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(true) { viewModel.loadAllCards() }
-    Scaffold {
+    Scaffold (modifier = modifier) {
         innerPadding ->
-        FlashcardInputBody(modifier = modifier
+        FlashcardInputBody(modifier = Modifier
             .padding(
                 start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
                 top = innerPadding.calculateTopPadding(),
@@ -78,7 +83,12 @@ fun FlashcardInputScreen(
                     viewModel.deleteCard()
                 }
             },
-            navigateToFlashcardView = { navigateToFlashcardView(viewModel.getShuffledCards()) }
+            onToggleEnabled = { card ->
+                coroutineScope.launch {
+                    viewModel.onToggleEnabled(card)
+                }
+            },
+            navigateToFlashcardView = { navigateToFlashcardView(viewModel.getCardDeck()) }
         )
     }
 }
@@ -93,57 +103,62 @@ private fun FlashcardInputBody(
     onSave: () -> Unit = {},
     onRemove: () -> Unit = {},
     onEdit: () -> Unit = {},
+    onToggleEnabled: (FlashcardDetails) -> Unit = {},
     navigateToFlashcardView: () -> Unit = {}
 ) {
+    val buttonModifier = Modifier.padding(horizontal = 2.dp)
     Column (modifier = modifier) {
-        InputFlashcard(flashcardDetails, onValueChange)
-        FilledTonalButton(
+        InputFlashcard(flashcardDetails, onValueChange =  onValueChange)
+        Button(
             onClick = { navigateToFlashcardView() },
-            Modifier.fillMaxWidth()
+            buttonModifier.fillMaxWidth()
         ) {
             Text("Shuffle Flashcards!")
         }
 
         if (flashcardDetails.uid == 0) {
-            Row {
+            Row (modifier = buttonModifier) {
                 FilledTonalButton(
                     onClick = { onSave() },
-                    Modifier.weight(0.5F),
+                    buttonModifier.weight(0.5F),
                     enabled = isCardValid
                 ) {
                     Text("Add Card")
                 }
             }
         } else {
-            Row {
+            Row (modifier = buttonModifier) {
                 FilledTonalButton(
                     onClick = { onEdit() },
-                    Modifier.weight(0.4F),
+                    buttonModifier.weight(0.3F).padding(1.dp),
                     enabled = isCardValid
                 ) {
-                    Text("Confirm Changes")
+                    Text("Confirm")
                 }
                 FilledTonalButton(
                     onClick = { onRemove() },
-                    Modifier.weight(0.3F)
+                    buttonModifier.weight(0.3F).padding(1.dp)
                 ) {
                     Text("Delete")
                 }
-                FilledTonalButton(
+                OutlinedButton(
                     onClick = { onValueChange(FlashcardDetails()) },
-                    Modifier.weight(0.3F)
+                    buttonModifier.weight(0.3F).padding(1.dp)
                 ) {
                     Text("Back")
                 }
             }
         }
-        FlashcardList(flashcards, onClick = { current -> onValueChange(current)})
+        FlashcardList(flashcards, onClick = { current -> onValueChange(current)}, onToggleEnabled = { card: FlashcardDetails -> onToggleEnabled(card) })
     }
 }
 
 @Composable
-private fun InputFlashcard(flashcardDetails: FlashcardDetails, onValueChange: (FlashcardDetails) -> Unit = {}) {
-    Column {
+private fun InputFlashcard(
+    flashcardDetails: FlashcardDetails,
+    modifier: Modifier = Modifier,
+    onValueChange: (FlashcardDetails) -> Unit = {}) {
+    Column (modifier = modifier) {
         TextField(
             value = flashcardDetails.frontText,
             onValueChange = { onValueChange(flashcardDetails.copy(frontText = it)) },
@@ -160,16 +175,54 @@ private fun InputFlashcard(flashcardDetails: FlashcardDetails, onValueChange: (F
 }
 
 @Composable
-fun FlashcardList(flashcards: List<FlashcardDetails>, onClick: (FlashcardDetails) -> Unit = {}) {
-    Row {
+fun FlashcardList(
+    flashcards: List<FlashcardDetails>,
+    modifier: Modifier = Modifier,
+    onClick: (FlashcardDetails) -> Unit = {},
+    onToggleEnabled: (FlashcardDetails) -> Unit = {}
+) {
+    Row (modifier = modifier) {
         LazyColumn {
             items(flashcards) {
                 flashcard ->
                 Column (modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
                     Row (modifier = Modifier.clickable { onClick(flashcard) },
                         verticalAlignment = Alignment.CenterVertically) {
-                        Text(flashcard.frontText, modifier = Modifier.weight(0.5F), textAlign = TextAlign.Center)
-                        Text(flashcard.backText, modifier = Modifier.weight(0.5F), textAlign = TextAlign.Center)
+                        val color: Color
+                        if (!flashcard.isEnabled()) {
+                            color = TextFieldDefaults.colors().disabledLabelColor
+                        } else {
+                            color = TextFieldDefaults.colors().focusedTextColor
+                        }
+
+                        Text(flashcard.frontText, modifier = Modifier.weight(0.5F), color = color, textAlign = TextAlign.Center)
+                        Text(flashcard.backText, modifier = Modifier.weight(0.5F), color = color, textAlign = TextAlign.Center)
+                        IconToggleButton(
+                            checked = flashcard.isEnabled(),
+                            onCheckedChange = { onToggleEnabled(flashcard) },
+
+                        ) {
+                            if (flashcard.isEnabled()) {
+                                Icon(
+                                    painter = painterResource(R.drawable.toggle_on),
+                                    contentDescription = "Toggled on",
+                                    tint = TextFieldDefaults.colors().focusedTextColor
+                                )
+                            } else {
+                                Icon(
+                                    painter = painterResource(R.drawable.toggle_off),
+                                    contentDescription = "Toggled off",
+                                    tint = TextFieldDefaults.colors().disabledLabelColor
+                                )
+                            }
+                        }
+//                        Checkbox(
+//                            modifier = Modifier.scale(0.9F),
+//                            checked = flashcard.isEnabled(),
+//                            onCheckedChange = { onToggleEnabled(flashcard) },
+//                            colors = CheckboxDefaults.colors(checkedColor = CheckboxDefaults.colors().disabledCheckedBoxColor,
+//                                uncheckedColor = CheckboxDefaults.colors().disabledCheckedBoxColor)
+//                        )
                     }
                     HorizontalDivider()
                 }
@@ -181,5 +234,8 @@ fun FlashcardList(flashcards: List<FlashcardDetails>, onClick: (FlashcardDetails
 @Preview(showBackground = true)
 @Composable
 fun TestPreview() {
-    FlashcardInputBody()
+    FlashcardInputBody(flashcards = listOf(
+        FlashcardDetails(frontText = "fromt", backText = "back"),
+        FlashcardDetails(frontText = "disabled", backText = "card", tags = listOf(disabledTag))
+    ))
 }

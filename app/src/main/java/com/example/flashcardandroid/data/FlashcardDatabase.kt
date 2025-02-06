@@ -1,6 +1,7 @@
 package com.example.flashcardandroid.data
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Delete
@@ -13,8 +14,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FlashcardDao {
-    @Query("SELECT * FROM flashcards")
-    fun getAll(): Flow<List<Flashcard>>
+    @Query("SELECT * FROM flashcards LEFT OUTER JOIN flashcardtags ON card_id = flashcards.uid GROUP BY flashcards.uid")
+    fun getAll(): Flow<Map<Flashcard, List<FlashcardTag>>>
 
     @Query("SELECT * FROM flashcards WHERE front_text LIKE :text")
     fun getByText(text: String): Flow<List<Flashcard>>
@@ -34,14 +35,26 @@ interface FlashcardDao {
     @Insert
     suspend fun insert(card: Flashcard)
 
+    @Insert
+    suspend fun insert(flashcardTag: FlashcardTag)
+
     @Delete
     suspend fun delete(card: Flashcard)
+
+    @Query("DELETE FROM FlashcardTags WHERE card_id = :cardId AND tag = :tag")
+    suspend fun deleteTag(cardId: Int, tag: String)
 
     @Update
     suspend fun update(card: Flashcard)
 }
 
-@Database(entities = [Flashcard::class], version = 1, exportSchema = false)
+@Database(
+    entities = [Flashcard::class, FlashcardTag::class],
+    version = 2,
+    autoMigrations = [
+        AutoMigration (from = 1, to = 2)
+    ]
+)
 abstract class FlashcardDatabase : RoomDatabase() {
     abstract fun flashcardDao(): FlashcardDao
 
